@@ -29,6 +29,9 @@ guy.velocity = {x:0, y:0};
 guy.bounce = 0.0;
 guy.moving = {x:true, y:true};
 
+guy.height = 196;
+guy.width = 136;
+
 // Keyboard controls:
 var left = keyboard(37);
 var	up = keyboard(38);
