@@ -17,7 +17,7 @@ var stage = new PIXI.Container();
 //
 
 // Init:
-var guy = new PIXI.Sprite.fromImage('img/mtt.gif');
+var guy = new PIXI.Sprite.fromImage('img/roll_guy.png');
 
 // Position:
 guy.anchor.x = 0.5;
