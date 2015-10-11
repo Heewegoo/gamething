@@ -138,7 +138,7 @@ function charMovement(char) {
 	}
 
 	// Tilt character with velocity:
-	char.rotation = char.velocity.x / -100;
+	char.rotation = char.velocity.x / -50;
 
 	// Move character with velocity:
 	char.position.x += char.velocity.x;
