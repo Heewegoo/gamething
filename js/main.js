@@ -13,24 +13,53 @@ document.body.appendChild(renderer.view);
 var stage = new PIXI.Container();
 
 //
+// GAME OBJECTS
+//
+
+var obj = [];
+
+function CreateGameObject(image, position, gravity, moving) {
+
+	var index = obj.push(new PIXI.Sprite.fromImage(image)) - 1;
+
+	obj[index].position = position;
+	obj[index].gravity = gravity;
+	obj[index].moving = moving;
+
+	obj[index].anchor.x = 0.5;
+	obj[index].anchor.y = 0.5;
+	obj[index].velocity = {x:0, y:0};
+	obj[index].bounce = 0.0;
+	obj[index].groundObj = -1;
+
+	stage.addChild(obj[index]);
+	return index;
+}
+
+//
 // GUY
 //
 
-// Init:
-var guy = new PIXI.Sprite.fromImage('img/roll_guy.png');
+var guy = CreateGameObject('img/roll_guy.png', {x:200, y:150}, 0.5, {x:true, y:true});
+obj[guy].height = 196;
+obj[guy].width = 136;
 
-// Position:
-guy.anchor.x = 0.5;
-guy.anchor.y = 0.5;
-guy.position.x = 200;
-guy.position.y = 150;
-guy.velocity = {x:0, y:0};
 
-guy.bounce = 0.0;
-guy.moving = {x:true, y:true};
+//
+// PLATFORM(S)
+//
 
-guy.height = 196;
-guy.width = 136;
+var platform = CreateGameObject('img/platform.png', {x:gameWidth/2, y:gameHeight}, 0.0, {x:false, y:false});
+obj[platform].height = 32;
+obj[platform].width = gameWidth * 100;
+
+platform = CreateGameObject('img/platform.png', {x:600, y:gameHeight-200}, 0.0, {x:false, y:false});
+obj[platform].height = 32;
+obj[platform].width = 512;
+
+//
+// CONTROLS
+//
 
 // Keyboard controls:
 var left = keyboard(37);
@@ -41,28 +70,25 @@ var	down = keyboard(40);
 // Jump:
 up.press = function() {
 
-	if(!guy.moving.y) {
-		guy.velocity.y = -15;
-		guy.moving.y = true;
+	if(!obj[guy].moving.y) {
+		obj[guy].velocity.y = -15;
+		obj[guy].moving.y = true;
 	}
 };
 
 // Click/Touch controls:
-guy.interactive = true;
-guy.on('mousedown', onDown);
-guy.on('touchstart', onDown);
+obj[guy].interactive = true;
+obj[guy].on('mousedown', onDown);
+obj[guy].on('touchstart', onDown);
 
 function onDown (eventData) {
 
-	if(!guy.moving.y) {
-		guy.velocity.x = Math.floor(Math.random() * (15 - -15 + 1)) + -15;;
-		guy.velocity.y = -15;
-		guy.moving.y = true;
+	if(!obj[guy].moving.y) {
+		obj[guy].velocity.x = Math.floor(Math.random() * (15 - -15 + 1)) + -15;;
+		obj[guy].velocity.y = -15;
+		obj[guy].moving.y = true;
 	}
 }
-
-// Spawn guy:
-stage.addChild(guy);
 
 //
 // ACTION
@@ -75,7 +101,7 @@ function animFrame() {
     requestAnimationFrame(animFrame);
 
 	// Handle Guy's movement:
-	charMovement(guy);
+	charMovement(obj[guy]);
 
     // Render:
     renderer.render(stage);
@@ -87,32 +113,42 @@ function charMovement(char) {
 	var charRadiusY = char.height * (1 - char.anchor.y);
 	var charRadiusX = char.width * (1 - char.anchor.x);
 
-	// game bottom is always the platform atm:
-	var platformHeight = gameHeight;
-	platformState = onPlatform(char, platformHeight);
+	// Object collision:
+	var platformHeight, platformState;
 
-	// Vertical movement:
-	if(platformState == 2) {
+	var objCount = obj.length;
+	for(var i = 1; i < objCount; i++) {
+
+		platformHeight = obj[i].position.y - obj[i].height * (1 - obj[i].anchor.y);
+		platformState = onPlatform(char, obj[i]);
+
 		// Hitting a platform:
-		char.position.y = platformHeight - charRadiusY;
+		if(platformState == 2) {
 
-		if(Math.abs(char.velocity.y - 0) < 1 || char.bounce == 0) {
-			// Landing
-			char.moving.y = false;
-			char.velocity.y = 0;
-		} else {
-			// Bouncing:
-			char.velocity.y = (char.velocity.y * -1) * char.bounce;
+			char.position.y = platformHeight - charRadiusY;
+
+			if(Math.abs(char.velocity.y - 0) < 1 || char.bounce == 0) {
+				// Landing
+				char.moving.y = false;
+				char.groundObj = obj[i];
+			} else {
+				// Bouncing:
+				char.velocity.y = (char.velocity.y * -1) * char.bounce;
+			}
+
+			break;
+		} else if(obj[i] == char.groundObj && platformState == 0) {
+			char.moving.y = true;
+			char.groundObj = -1;
 		}
 	}
 
 	if(!char.moving.y) {
 		// Standing:
 		char.velocity.y = 0;
-		char.position.y = platformHeight - charRadiusY;
 	} else {
 		// Gravitate downwards:
-		char.velocity.y += 0.5;
+		char.velocity.y += char.gravity;
 	}
 
 	// Horizontal movement:
@@ -148,9 +184,16 @@ function charMovement(char) {
 function onPlatform(char, platform) {
 
 	var charRadiusY = char.height * (1 - char.anchor.y);
+	var charRadiusX = char.width * (1 - char.anchor.x);
 
-	if(char.position.y + charRadiusY <= platform) {
-		if(char.position.y + charRadiusY + char.velocity.y >= platform && char.moving.y) {
+	var platformHeight = platform.height * (1 - platform.anchor.y);
+	var platformWidth = platform.width * (1 - platform.anchor.x);
+
+	if(char.position.y + charRadiusY <= platform.position.y - platformHeight
+	&& char.position.x - 10 <= platform.position.x + platformWidth
+	&& char.position.x + 10 >= platform.position.x - platformWidth) {
+
+		if(char.position.y + charRadiusY + char.velocity.y >= platform.position.y - platformHeight && char.moving.y) {
 
 			// Hitting the platform:
 			return 2;
@@ -160,7 +203,7 @@ function onPlatform(char, platform) {
 		return 1;
 	}
 
-	// Above platform:
+	// Above/away from platform:
 	return 0;
 }
 
