@@ -46,10 +46,15 @@ var platform = CreateGameObject('img/platform.png', {x:gameWidth/2, y:gameHeight
 obj[platform].height = 32;
 obj[platform].width = gameWidth * 100;
 
-platform = CreateGameObject('img/platform.png', {x:600, y:gameHeight-200}, 0.0);
+platform = CreateGameObject('img/platform.png', {x:gameWidth/2, y:gameHeight*0.6}, 0.0);
 obj[platform].height = 32;
 obj[platform].width = 512;
 obj[platform].velocity.x = 5
+
+platform = CreateGameObject('img/platform.png', {x:gameWidth/2, y:gameHeight*0.8}, 0.0);
+obj[platform].height = 32;
+obj[platform].width = 512;
+obj[platform].velocity.x = -5
 
 //
 // CONTROLS
