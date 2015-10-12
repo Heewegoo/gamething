@@ -18,13 +18,12 @@ var stage = new PIXI.Container();
 
 var obj = [];
 
-function CreateGameObject(image, position, gravity, moving) {
+function CreateGameObject(image, position, gravity) {
 
 	var index = obj.push(new PIXI.Sprite.fromImage(image)) - 1;
 
 	obj[index].position = position;
 	obj[index].gravity = gravity;
-	obj[index].moving = moving;
 
 	obj[index].anchor.x = 0.5;
 	obj[index].anchor.y = 0.5;
@@ -36,26 +35,21 @@ function CreateGameObject(image, position, gravity, moving) {
 	return index;
 }
 
-//
 // GUY
-//
-
-var guy = CreateGameObject('img/roll_guy.png', {x:200, y:150}, 0.5, {x:true, y:true});
+var guy = CreateGameObject('img/roll_guy.png', {x:200, y:150}, 0.5);
 obj[guy].height = 196;
 obj[guy].width = 136;
 
 
-//
-// PLATFORM(S)
-//
-
-var platform = CreateGameObject('img/platform.png', {x:gameWidth/2, y:gameHeight}, 0.0, {x:false, y:false});
+// PLATFORMS
+var platform = CreateGameObject('img/platform.png', {x:gameWidth/2, y:gameHeight}, 0.0);
 obj[platform].height = 32;
 obj[platform].width = gameWidth * 100;
 
-platform = CreateGameObject('img/platform.png', {x:600, y:gameHeight-200}, 0.0, {x:false, y:false});
+platform = CreateGameObject('img/platform.png', {x:600, y:gameHeight-200}, 0.0);
 obj[platform].height = 32;
 obj[platform].width = 512;
+obj[platform].velocity.x = 5
 
 //
 // CONTROLS
@@ -70,9 +64,9 @@ var	down = keyboard(40);
 // Jump:
 up.press = function() {
 
-	if(!obj[guy].moving.y) {
+	if(obj[guy].groundObj != -1) {
 		obj[guy].velocity.y = -15;
-		obj[guy].moving.y = true;
+		obj[guy].groundObj = -1;
 	}
 };
 
@@ -83,10 +77,10 @@ obj[guy].on('touchstart', onDown);
 
 function onDown (eventData) {
 
-	if(!obj[guy].moving.y) {
+	if(obj[guy].groundObj != -1) {
 		obj[guy].velocity.x = Math.floor(Math.random() * (15 - -15 + 1)) + -15;;
 		obj[guy].velocity.y = -15;
-		obj[guy].moving.y = true;
+		obj[guy].groundObj = -1;
 	}
 }
 
@@ -102,6 +96,12 @@ function animFrame() {
 
 	// Handle Guy's movement:
 	charMovement(obj[guy]);
+
+	// Handle every other object's movement:
+	var objCount = obj.length;
+	for(var i = 1; i < objCount; i++) {
+		objMovement(obj[i])
+	}
 
     // Render:
     renderer.render(stage);
@@ -129,7 +129,6 @@ function charMovement(char) {
 
 			if(Math.abs(char.velocity.y - 0) < 1 || char.bounce == 0) {
 				// Landing
-				char.moving.y = false;
 				char.groundObj = obj[i];
 			} else {
 				// Bouncing:
@@ -138,13 +137,13 @@ function charMovement(char) {
 
 			break;
 		} else if(obj[i] == char.groundObj && platformState == 0) {
-			char.moving.y = true;
 			char.groundObj = -1;
 		}
 	}
 
-	if(!char.moving.y) {
+	if(char.groundObj != -1) {
 		// Standing:
+		char.position.y = char.groundObj.position.y - char.groundObj.height * (1 - char.groundObj.anchor.y) - charRadiusY;
 		char.velocity.y = 0;
 	} else {
 		// Gravitate downwards:
@@ -177,8 +176,30 @@ function charMovement(char) {
 	char.rotation = char.velocity.x / -50;
 
 	// Move character with velocity:
-	char.position.x += char.velocity.x;
-	char.position.y += char.velocity.y;
+	if(char.groundObj == -1) {
+		char.position.x += char.velocity.x;
+		char.position.y += char.velocity.y;
+	} else {
+		char.position.x += char.velocity.x + char.groundObj.velocity.x;
+		char.position.y += char.velocity.y + char.groundObj.velocity.y;
+	}
+}
+
+// Character movement:
+function objMovement(object) {
+
+	var objRadiusX = object.width * (1 - object.anchor.x);
+
+	// Move through side edges:
+	if (object.position.x > gameWidth + objRadiusX) {
+		object.position.x = (objRadiusX*-1) - 1;
+	} else if(object.position.x < objRadiusX*-1) {
+		object.position.x = gameWidth + objRadiusX + 1;
+	}
+
+	// Move with velocity:
+	object.position.x += object.velocity.x;
+	object.position.y += object.velocity.y;
 }
 
 function onPlatform(char, platform) {
@@ -193,7 +214,7 @@ function onPlatform(char, platform) {
 	&& char.position.x - 10 <= platform.position.x + platformWidth
 	&& char.position.x + 10 >= platform.position.x - platformWidth) {
 
-		if(char.position.y + charRadiusY + char.velocity.y >= platform.position.y - platformHeight && char.moving.y) {
+		if(char.position.y + charRadiusY + char.velocity.y >= platform.position.y - platformHeight) {
 
 			// Hitting the platform:
 			return 2;
