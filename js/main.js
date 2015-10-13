@@ -210,8 +210,11 @@ function charMovement(char) {
 	}
 
 	// Scroll stage:
-	if(char.position.y <= gameHeight/2) {
-		stage.position.y = char.position.y*-1 + gameHeight/2;
+	newStagePos = char.position.y*-1 + gameHeight/2;
+	if(newStagePos > 0) {
+		stage.position.y = newStagePos
+	} else if(newStagePos < 0) {
+		stage.position.y = 0;
 	}
 }
 
