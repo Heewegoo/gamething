@@ -36,25 +36,25 @@ function CreateGameObject(image, position, gravity) {
 }
 
 // GUY
-var guy = CreateGameObject('img/roll_guy.png', {x:200, y:150}, 0.5);
+var guy = CreateGameObject('img/roll_guy.png', {x:200, y:gameHeight-200}, 0.5);
 obj[guy].height = 196;
 obj[guy].width = 136;
 
 
 // PLATFORMS
+
 var platform = CreateGameObject('img/platform.png', {x:gameWidth/2, y:gameHeight}, 0.0);
 obj[platform].height = 32;
 obj[platform].width = gameWidth * 100;
 
-platform = CreateGameObject('img/platform.png', {x:gameWidth/2, y:gameHeight*0.6}, 0.0);
-obj[platform].height = 32;
-obj[platform].width = 512;
-obj[platform].velocity.x = 5
+for(var i = 1; i <= 50; i++) {
+	var height = gameHeight-200 * i;
 
-platform = CreateGameObject('img/platform.png', {x:gameWidth/2, y:gameHeight*0.8}, 0.0);
-obj[platform].height = 32;
-obj[platform].width = 512;
-obj[platform].velocity.x = -5
+	platform = CreateGameObject('img/platform.png', {x:gameWidth/2, y:height}, 0.0);
+	obj[platform].height = 32;
+	obj[platform].width = 512;
+	obj[platform].velocity.x = Math.floor(Math.random() * (10 - -10 + 1)) + -15;
+}
 
 //
 // CONTROLS
@@ -62,16 +62,16 @@ obj[platform].velocity.x = -5
 
 // Keyboard controls:
 var left = keyboard(37);
-var	up = keyboard(38);
-var	right = keyboard(39);
-var	down = keyboard(40);
+var up = keyboard(38);
+var right = keyboard(39);
+var down = keyboard(40);
 
 // Jump:
 up.press = function() {
 
 	if(obj[guy].groundObj != -1) {
 		obj[guy].velocity.y = -15;
-		obj[guy].groundObj = -1;
+		detachPlatform(obj[guy], obj[guy].groundObj);
 	}
 };
 
@@ -83,9 +83,9 @@ obj[guy].on('touchstart', onDown);
 function onDown (eventData) {
 
 	if(obj[guy].groundObj != -1) {
-		obj[guy].velocity.x = Math.floor(Math.random() * (15 - -15 + 1)) + -15;;
+		obj[guy].velocity.x = Math.floor(Math.random() * (15 - -15 + 1)) + -15;
 		obj[guy].velocity.y = -15;
-		obj[guy].groundObj = -1;
+		detachPlatform(obj[guy], obj[guy].groundObj);
 	}
 }
 
@@ -115,63 +115,52 @@ function animFrame() {
 // Character movement:
 function charMovement(char) {
 
+	// Char bounds:
 	var charRadiusY = char.height * (1 - char.anchor.y);
 	var charRadiusX = char.width * (1 - char.anchor.x);
 
 	// Object collision:
-	var platformHeight, platformState;
-
 	var objCount = obj.length;
-	for(var i = 1; i < objCount; i++) {
+	for(var i = 0; i < objCount; i++) {
 
-		platformHeight = obj[i].position.y - obj[i].height * (1 - obj[i].anchor.y);
-		platformState = onPlatform(char, obj[i]);
+		var plat = obj[i];
 
-		// Hitting a platform:
+		// Check current plaform first:
+		if(i == 0 && char.groundObj != -1) {
+			plat = char.groundObj;
+		} else if(plat == char.groundObj) {
+			continue;
+		}
+
+		var platformHeight = plat.position.y - plat.height * (1 - plat.anchor.y);
+		var platformState = onPlatform(char, plat);
+
 		if(platformState == 2) {
 
 			char.position.y = platformHeight - charRadiusY;
 
 			if(Math.abs(char.velocity.y - 0) < 1 || char.bounce == 0) {
 				// Landing
-				char.groundObj = obj[i];
+				char.groundObj = plat;
 			} else {
 				// Bouncing:
 				char.velocity.y = (char.velocity.y * -1) * char.bounce;
 			}
 
 			break;
-		} else if(obj[i] == char.groundObj && platformState == 0) {
-			char.groundObj = -1;
+		} else if(plat == char.groundObj) {
+
+			// Still on last platform?:
+			if(platformState == 1) /* Yes */ {
+				break;
+			} else /* Nope */ {
+				detachPlatform(char, char.groundObj);
+			}
 		}
 	}
 
-	if(char.groundObj != -1) {
-		// Standing:
-		char.position.y = char.groundObj.position.y - char.groundObj.height * (1 - char.groundObj.anchor.y) - charRadiusY;
-		char.velocity.y = 0;
-	} else {
-		// Gravitate downwards:
-		char.velocity.y += char.gravity;
-	}
-
-	// Horizontal movement:
-	if(right.isDown && char.velocity.x < 15) {
-		char.velocity.x += 0.75;
-	}
-	if(left.isDown && char.velocity.x > -15) {
-		char.velocity.x += -0.75;
-	}
-
-	// Horizontal velocity decay:
-	if(char.velocity.x > 0) {
-		char.velocity.x -= 0.5;
-	} else if(char.velocity.x < 0) {
-		char.velocity.x += 0.5;
-	}
-
 	// Move through side edges:
-	if (char.position.x > gameWidth + charRadiusX) {
+	if(char.position.x > gameWidth + charRadiusX) {
 		char.position.x = (charRadiusX*-1) - 1;
 	} else if(char.position.x < charRadiusX*-1) {
 		char.position.x = gameWidth + charRadiusX + 1;
@@ -180,17 +169,53 @@ function charMovement(char) {
 	// Tilt character with velocity:
 	char.rotation = char.velocity.x / -50;
 
-	// Move character with velocity:
-	if(char.groundObj == -1) {
-		char.position.x += char.velocity.x;
-		char.position.y += char.velocity.y;
-	} else {
+	if(char.groundObj != -1) /* ON PLATFORM */ {
+
+		// Glue to platform:
+		char.velocity.y = char.groundObj.velocity.y;
+
+		// Horizontal movement:
+		if(right.isDown && char.velocity.x < 15) {
+			char.velocity.x += 0.75;
+		}
+		if(left.isDown && char.velocity.x > -15) {
+			char.velocity.x += -0.75;
+		}
+
+		// Horizontal velocity decay:
+		if(char.velocity.x > 0) {
+			char.velocity.x -= 0.5;
+		} else if(char.velocity.x < 0) {
+			char.velocity.x += 0.5;
+		}
+
 		char.position.x += char.velocity.x + char.groundObj.velocity.x;
 		char.position.y += char.velocity.y + char.groundObj.velocity.y;
+	} else /* IN THE AIR */ {
+
+		// Horizontal movement:
+		if(right.isDown && char.velocity.x < 15) {
+			char.velocity.x += 0.25;
+		}
+		if(left.isDown && char.velocity.x > -15) {
+			char.velocity.x -= 0.25;
+		}
+
+		// Gravity:
+		char.velocity.y += char.gravity;
+
+		// Move character with velocity:
+		char.position.x += char.velocity.x;
+		char.position.y += char.velocity.y;
+	}
+
+	// Scroll stage:
+	if(char.position.y < gameHeight/2) {
+		stage.position.y = char.position.y*-1 + gameHeight/2;
 	}
 }
 
-// Character movement:
+// Object movement:
 function objMovement(object) {
 
 	var objRadiusX = object.width * (1 - object.anchor.x);
@@ -231,6 +256,16 @@ function onPlatform(char, platform) {
 
 	// Above/away from platform:
 	return 0;
+}
+
+function detachPlatform(char, platform) {
+
+	if(char.groundObj == platform) {
+		char.velocity.x += platform.velocity.x;
+		char.velocity.y += platform.velocity.y;
+
+		char.groundObj = -1;
+	}
 }
 
 //The `keyboard` helper function
