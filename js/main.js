@@ -53,7 +53,7 @@ for(var i = 1; i <= 50; i++) {
 	platform = CreateGameObject('img/platform.png', {x:gameWidth/2, y:height}, 0.0);
 	obj[platform].height = 32;
 	obj[platform].width = 512;
-	obj[platform].velocity.x = Math.floor(Math.random() * (10 - -10 + 1)) + -15;
+	obj[platform].velocity.x = Math.floor(Math.random() * (10 - -10 + 1)) + -10;
 }
 
 //
@@ -210,7 +210,7 @@ function charMovement(char) {
 	}
 
 	// Scroll stage:
-	if(char.position.y < gameHeight/2) {
+	if(char.position.y <= gameHeight/2) {
 		stage.position.y = char.position.y*-1 + gameHeight/2;
 	}
 }
