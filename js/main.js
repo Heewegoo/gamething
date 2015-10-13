@@ -56,6 +56,16 @@ for(var i = 1; i <= 50; i++) {
 	obj[platform].velocity.x = Math.floor(Math.random() * (10 - -10 + 1)) + -10;
 }
 
+// SCORE COUNTER
+var score = new PIXI.Text("0", {font:"50px Arial", fill:"yellow"});
+
+score.anchor.x = 0.5;
+score.anchor.y = 0.5;
+score.position.x = gameWidth/2;
+score.position.y = 100;
+
+stage.addChild(text);
+
 //
 // CONTROLS
 //
