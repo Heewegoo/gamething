@@ -152,6 +152,7 @@ function charMovement(char) {
 			if(Math.abs(char.velocity.y - 0) < 1 || char.bounce == 0) {
 				// Landing
 				char.groundObj = plat;
+				score.setText("Score: " + i);
 			} else {
 				// Bouncing:
 				char.velocity.y = (char.velocity.y * -1) * char.bounce;
