@@ -64,7 +64,7 @@ score.anchor.y = 0.5;
 score.position.x = gameWidth/2;
 score.position.y = 100;
 
-stage.addChild(text);
+stage.addChild(score);
 
 //
 // CONTROLS
