@@ -18,7 +18,7 @@ var stage = new PIXI.Container();
 
 var obj = [];
 
-function CreateGameObject(image, position, gravity) {
+function CreateGameObject(parent, image, position, gravity) {
 
 	var index = obj.push(new PIXI.Sprite.fromImage(image)) - 1;
 
@@ -31,38 +31,36 @@ function CreateGameObject(image, position, gravity) {
 	obj[index].bounce = 0.0;
 	obj[index].groundObj = -1;
 
-	stage.addChild(obj[index]);
+	parent.addChild(obj[index]);
 	return index;
 }
 
 // GUY
-var guy = CreateGameObject('img/roll_guy.png', {x:200, y:gameHeight-200}, 0.5);
+var guy = CreateGameObject(stage, 'img/roll_guy.png', {x:200, y:gameHeight-200}, 0.5);
 obj[guy].height = 196;
 obj[guy].width = 136;
 
 
 // PLATFORMS
-
-var platform = CreateGameObject('img/platform.png', {x:gameWidth/2, y:gameHeight}, 0.0);
+var platform = CreateGameObject(stage, 'img/platform.png', {x:gameWidth/2, y:gameHeight-16}, 0.0);
 obj[platform].height = 32;
-obj[platform].width = gameWidth * 100;
+obj[platform].width = gameWidth + obj[guy].width;
 
 for(var i = 1; i <= 50; i++) {
 	var height = gameHeight-200 * i;
 
-	platform = CreateGameObject('img/platform.png', {x:gameWidth/2, y:height}, 0.0);
+	platform = CreateGameObject(stage, 'img/platform.png', {x:gameWidth/2, y:height}, 0.0);
 	obj[platform].height = 32;
 	obj[platform].width = 512;
 	obj[platform].velocity.x = Math.floor(Math.random() * (10 - -10 + 1)) + -10;
 }
 
 // SCORE COUNTER
-var score = new PIXI.Text("0", {font:"50px Arial", fill:"yellow"});
+var score = new PIXI.Text("Score: 0", {font:"50px Arial", fill:"lightblue"});
 
 score.anchor.x = 0.5;
 score.anchor.y = 0.5;
 score.position.x = gameWidth/2;
-score.position.y = 100;
 
 stage.addChild(score);
 
@@ -152,7 +150,6 @@ function charMovement(char) {
 			if(Math.abs(char.velocity.y - 0) < 1 || char.bounce == 0) {
 				// Landing
 				char.groundObj = plat;
-				score.setText("Score: " + i);
 			} else {
 				// Bouncing:
 				char.velocity.y = (char.velocity.y * -1) * char.bounce;
@@ -227,6 +224,9 @@ function charMovement(char) {
 	} else if(newStagePos < 0) {
 		stage.position.y = 0;
 	}
+
+	score.text = "Score: " + Math.floor((obj[1].position.y - (char.position.y + charRadiusY)) / 200);
+	score.position.y = stage.position.y/-1 + 50;
 }
 
 // Object movement:
@@ -331,4 +331,9 @@ window.onresize = function (event) {
 
 	//this part adjusts the ratio:
 	renderer.resize(gameWidth, gameHeight);
+
+	// Move score counter:
+	score.position.x = gameWidth/2;
+	// Move bottom platform:
+	obj[1].position.y = gameHeight-16;
 }
