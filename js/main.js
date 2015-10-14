@@ -2,11 +2,17 @@
 // GAME INIT
 //
 
+// PIXI GLOBALS:
 PIXI.SCALE_MODES.DEFAULT = PIXI.SCALE_MODES.NEAREST;
 
-var gameHeight = window.innerHeight;
-var gameWidth = window.innerWidth;
+// GAME SCALING:
+var gameWidth = 640,
+	gameHeight = 480;
 
+var gameScale = Math.min(window.innerWidth / gameWidth, window.innerHeight / gameHeight);
+
+
+// STAGE:
 var renderer = PIXI.autoDetectRenderer(gameWidth, gameHeight, {backgroundColor : 0x222222});
 document.body.appendChild(renderer.view);
 
@@ -37,32 +43,32 @@ function CreateGameObject(parent, image, position, gravity) {
 
 // GUY
 var guy = CreateGameObject(stage, 'img/roll_guy.png', {x:200, y:gameHeight-200}, 0.5);
-obj[guy].height = 196;
-obj[guy].width = 136;
 
 
 // PLATFORMS
-var platform = CreateGameObject(stage, 'img/platform.png', {x:gameWidth/2, y:gameHeight-16}, 0.0);
-obj[platform].height = 32;
-obj[platform].width = gameWidth + obj[guy].width;
+var platform = CreateGameObject(stage, 'img/platform.png', {x:gameWidth/2, y:gameHeight-8}, 0.0);
+obj[platform].height = 16;
+obj[platform].width = gameWidth*100;
 
 for(var i = 1; i <= 50; i++) {
-	var height = gameHeight-200 * i;
+	var height = gameHeight-80 * i;
 
 	platform = CreateGameObject(stage, 'img/platform.png', {x:gameWidth/2, y:height}, 0.0);
-	obj[platform].height = 32;
-	obj[platform].width = 512;
-	obj[platform].velocity.x = Math.floor(Math.random() * (10 - -10 + 1)) + -10;
+	obj[platform].height = 16;
+	obj[platform].width = 192;
+	obj[platform].velocity.x = Math.floor(Math.random() * (7.5 - -7.5 + 1)) + -7.5;
 }
 
 // SCORE COUNTER
-var score = new PIXI.Text("Score: 0", {font:"50px Arial", fill:"lightblue"});
+var score = new PIXI.Text("Score: 0", {font:"25px Arial", fill:"lightblue"});
 
 score.anchor.x = 0.5;
 score.anchor.y = 0.5;
 score.position.x = gameWidth/2;
 
 stage.addChild(score);
+
+ScaleGamePort();
 
 //
 // CONTROLS
@@ -78,7 +84,7 @@ var down = keyboard(40);
 up.press = function() {
 
 	if(obj[guy].groundObj != -1) {
-		obj[guy].velocity.y = -15;
+		obj[guy].velocity.y = -10;
 		detachPlatform(obj[guy], obj[guy].groundObj);
 	}
 };
@@ -91,8 +97,8 @@ obj[guy].on('touchstart', onDown);
 function onDown (eventData) {
 
 	if(obj[guy].groundObj != -1) {
-		obj[guy].velocity.x = Math.floor(Math.random() * (15 - -15 + 1)) + -15;
-		obj[guy].velocity.y = -15;
+		obj[guy].velocity.x = Math.floor(Math.random() * (5 - -5 + 1)) + -5;
+		obj[guy].velocity.y = -10;
 		detachPlatform(obj[guy], obj[guy].groundObj);
 	}
 }
@@ -183,10 +189,10 @@ function charMovement(char) {
 		char.velocity.y = char.groundObj.velocity.y;
 
 		// Horizontal movement:
-		if(right.isDown && char.velocity.x < 15) {
+		if(right.isDown && char.velocity.x < 10) {
 			char.velocity.x += 0.75;
 		}
-		if(left.isDown && char.velocity.x > -15) {
+		if(left.isDown && char.velocity.x > -10) {
 			char.velocity.x += -0.75;
 		}
 
@@ -225,8 +231,8 @@ function charMovement(char) {
 		stage.position.y = 0;
 	}
 
-	score.text = "Score: " + Math.floor((obj[1].position.y - (char.position.y + charRadiusY)) / 200);
-	score.position.y = stage.position.y/-1 + 50;
+	score.text = "Score: " + Math.floor((obj[1].position.y - (char.position.y + charRadiusY)) / 80);
+	score.position.y = stage.position.y/-1 + 25;
 }
 
 // Object movement:
@@ -319,21 +325,14 @@ function keyboard(keyCode) {
 	return key;
 }
 
+function ScaleGamePort() {
+	renderer.view.style.width = (gameWidth*gameScale) + "px";
+	renderer.view.style.height = (gameHeight*gameScale) + "px";
+}
+
 // Resizable game window:
 window.onresize = function (event) {
 
-	gameWidth = window.innerWidth;
-	gameHeight = window.innerHeight;
-
-	//this part resizes the canvas but keeps ratio the same
-	renderer.view.style.width = gameWidth + "px";
-	renderer.view.style.height = gameHeight + "px";
-
-	//this part adjusts the ratio:
-	renderer.resize(gameWidth, gameHeight);
-
-	// Move score counter:
-	score.position.x = gameWidth/2;
-	// Move bottom platform:
-	obj[1].position.y = gameHeight-16;
+	gameScale = Math.min(window.innerWidth / gameWidth, window.innerHeight / gameHeight);
+	ScaleGamePort();
 }
